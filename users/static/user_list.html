@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>User list</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/static/layui/css/layui.css" media="all">
+</head>
+
+<body style="background:#F2F2F2">
+    <div class="layui-container">
+        <ul class="layui-nav" lay-filter="">
+        </ul>
+        <div class="layui-card">
+            <div class="layui-card-header">User list</div>
+            <div class="layui-card-body">
+                    <button class="layui-btn" onclick="add()" type="button">ADD USER</button>
+                <div class="layui-form">
+                    <table class="layui-table">
+                        <colgroup>
+                            <col width="150">
+                            <col width="150">
+                            <col width="200">
+                            <col>
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Last name</th>
+                                <th>First name</th>
+                                <th>Role</th>
+                                <th>Operation</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody">
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <script src="/static/layui/layui.all.js" charset="utf-8"></script>
+    <script src="/static/js/manage.js" charset="utf-8"></script>
+    <script>
+        var $ = null, layer = null;
+        layui.use(['layer', 'element'], function () {
+            $ = layui.jquery, layer = layui.layer;
+            load_menu("user_item");
+        });
+
+        function remove(id) {
+            $.ajax({
+                type: "POST",
+                url: "/users/del",
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify({ id: id }),
+                dataType: "json",
+                success: function (ret) {
+                    load();
+                }
+
+            });
+        }
+
+        function del(id) {
+            layer.confirm('Are you sure?', {
+                btn: ['OK', 'Cancel']
+            }, function () {
+                layer.msg('Delete successful');
+                remove(id);
+            }, function () {
+
+            });
+        }
+
+        var addLayer = null;
+        function add() {
+            addLayer = layer.open({
+                type: 2,
+                title: 'ADD USER',
+                shadeClose: true,
+                shade: 0.8,
+                area: ['700px', '500px'],
+                content: 'user_add'
+            });
+        }
+
+        function load() {
+            $("#tbody").html("<tr><td colspan=5><p style='text-align:center;padding:50px;font-weight:bold' >Loading...</p></td></tr>");
+            $.ajax({
+                type: "GET",
+                url: "/users/get_user_list",
+                dataType: "json",
+                success: function (ret) {
+                    if(ret.code != 0){
+                        layer.alert(ret.msg);
+                        return;
+                    }
+                    var list = ret.data;
+                    var html = '';
+                    for (var i = 0; i < list.length; i++) {
+                        var item = list[i];
+
+                        html += '<tr>';
+                        html += '<td>' + list[i].email + '</td>';
+                        html += '<td>' + list[i].first_name + '</td>';
+                        html += '<td>' + list[i].last_name + '</td>';
+                        html += '<td>' + list[i].level + '</td>';
+                        html += '<td><button class="layui-btn layui-btn-primary layui-btn-sm layui-btn-danger" onclick="del(' + list[i].id + ')">Delete</button></td>';
+                        html += '</tr>';
+                    }
+                    $("#tbody").html(html);
+                }
+            });
+        }
+    </script>
+
+
+    <script>
+        var $ = null, layer = null;
+        layui.use('layer', function () {
+            $ = layui.jquery, layer = layui.layer;
+            $(".opt-btn").click(function () {
+                var status = $(this).attr("data-opt");
+                global_status = status;
+                search();
+            });
+        });
+        var size = 20;
+        function search() {
+            $(".opt-btn").removeClass("layui-btn-normal");
+            $("button[data-opt=" + global_status + "]").addClass("layui-btn-normal");
+            $("#paging").html('');
+            load(1, size);
+        }
+
+
+        function render_time(timestamp) {
+            var d = new Date(timestamp * 1000);
+            var date = (d.getFullYear()) + "-" +
+                (d.getMonth() + 1) + "-" +
+                (d.getDate()) + " " +
+                (d.getHours()) + ":" +
+                (d.getMinutes()) + ":" +
+                (d.getSeconds());
+            return date;
+        }
+
+        var global_status = 'submitted';
+
+
+       
+
+        function edit(id) {
+            addLayer = layer.open({
+                type: 2,
+                title: 'Edit question',
+                shadeClose: true,
+                shade: 0.8,
+                area: ['800px', '800px'],
+                content: 'update_question?id=' + id
+            });
+
+        }
+
+
+        function paging(total, size) {
+            layui.use(['laypage', 'layer'], function () {
+                var laypage = layui.laypage
+                    , layer = layui.layer;
+
+                laypage.render({
+                    elem: 'paging'
+                    , count: total, 
+                    limit: size,
+                    jump: function (obj, first) {
+                        $(".layui-laypage-prev").html("Prev");
+                        $(".layui-laypage-next").html("Next");
+                        if (!first)
+                            load(obj.curr, size);
+                    }
+                });
+                $(".layui-laypage-prev").html("Prev");
+                $(".layui-laypage-next").html("Next");
+            });
+        }
+
+        search();
+    </script>
+
+</body>
+
+</html>

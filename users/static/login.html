@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sign in</title>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="stylesheet" href="/static/layui/css/layui.css"  media="all">
+</head>
+<body style="background:#F2F2F2">
+<div class="layui-container">
+    <ul class="layui-nav" lay-filter="">
+      </ul>
+      <div class="layui-card">
+          <div class="layui-card-header">Sign in</div>
+          <div class="layui-card-body">
+            
+              <form class="layui-form" action=""  style="width:500px;margin:0 auto">
+                  <div class="layui-form-item">
+                    <label class="layui-form-label">Email</label>
+                    <div class="layui-input-block">
+                      <input type="text" name="email" id="email" lay-verify="required" autocomplete="off" placeholder="Input email" class="layui-input" style="text-align:center">
+                    </div>
+                  </div>  
+                  <div class="layui-form-item">
+                    <label class="layui-form-label">Password</label>
+                    <div class="layui-input-block">
+                      <input type="password" id="password" name="password" lay-verify="required" autocomplete="off" placeholder="Input first name" class="layui-input" style="text-align:center">
+                    </div>
+                  </div> 
+                  <div class="layui-form-item">
+                    <div class="layui-input-block" style="text-align:center">
+                      <button class="layui-btn" onclick="click_submit()" type="button">Submit</button>
+                      <button type="reset" class="layui-btn layui-btn-primary">Reset</button>
+                      <p style="padding-top:20px;"><a href="forget">Forget your password?</a>
+                    </div>
+                  </div>
+                </form>
+          </div>
+      </div>
+</div>
+<script src="/static/layui/layui.all.js" charset="utf-8"></script>
+<script src="/static/js/manage.js" charset="utf-8"></script>
+<script>
+    var $ = null,layer = null;
+    layui.use('layer', function(){
+        $ = layui.jquery, layer = layui.layer;
+        load_menu("login");
+    });
+    function getQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) return unescape(r[2]); return null;
+    }
+
+    function click_submit(){
+      var email = $("#email").val();
+      var password = $("#password").val();
+      if(email == ""){
+        layer.alert("Email is required!");
+        return;
+      }
+      if(password == ""){
+        layer.alert("Password is required!");
+        return;
+      }
+      $.ajax({
+            type:"POST",
+            url:"/users/do_login",
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify({email:email,password:password}),
+            dataType: "json",
+            success: function (ret) {
+                if(ret.code != 0){
+                    layer.alert(ret.msg);
+                }else{
+                    window.location = "/manage/index"
+                }
+                
+            }
+        }); 
+    }
+
+
+</script>
+
+</body>
+</html>
+

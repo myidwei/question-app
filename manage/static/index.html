@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Index page</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/static/layui/css/layui.css" media="all">
+</head>
+
+<body style="background:#F2F2F2">
+    <div class="layui-container">
+        <ul class="layui-nav" lay-filter="">
+
+        </ul>
+        <div class="layui-card">
+            <div class="layui-card-body" style="text-align: center">
+                <button class="layui-btn layui-btn-lg opt-btn" data-opt="submitted">Submitted Questions</button>
+                <button class="layui-btn layui-btn-lg opt-btn" data-opt="pending">Pedding Questions</button>
+                <button class="layui-btn layui-btn-lg opt-btn" data-opt="published">Published Questions</button>
+            </div>
+            <blockquote class="layui-elem-quote">
+                <form class="layui-form" action="">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">Keyword</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="keyword" id="keyword" lay-verify="title" style="width:320px;"
+                                autocomplete="off" placeholder="Input keyword" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-inline">
+                        <button class="layui-btn layui-btn-normal" type="button" onclick="search()">Search</button>
+                    </div>
+                    <button class="layui-btn layui-btn layui-btn-danger" type="button" onclick="add();"><i
+                            class="layui-icon"></i>Add New Question</button>
+                </form>
+            </blockquote>
+
+            <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+                <legend>Search Result</legend>
+            </fieldset>
+            <div class="layui-form">
+                <table class="layui-table">
+                    <colgroup>
+                        <col width="150">
+                        <col width="150">
+                        <col width="200">
+                        <col>
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th width="15%">Submit User</th>
+                            <th width="55%">Question</th>
+                            <th width="15%">Submit Time</th>
+                            <th width="15%">Operation</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody">
+
+                    </tbody>
+                </table>
+                <div id="paging"></div>
+            </div>
+        </div>
+
+    </div>
+    <script src="/static/layui/layui.all.js" charset="utf-8"></script>
+    <script src="/static/js/manage.js" charset="utf-8"></script>
+    <script>
+        var $ = null, layer = null;
+        layui.use(['layer', 'element'], function () {
+            $ = layui.jquery, layer = layui.layer;
+            load_menu("index");
+        });
+
+    </script>
+
+    <script>
+        var $ = null, layer = null;
+        layui.use('layer', function () {
+            $ = layui.jquery, layer = layui.layer;
+            $(".opt-btn").click(function () {
+                var status = $(this).attr("data-opt");
+                global_status = status;
+                search();
+            });
+        });
+        var size = 20;
+        function search() {
+            $(".opt-btn").removeClass("layui-btn-normal");
+            $("button[data-opt=" + global_status + "]").addClass("layui-btn-normal");
+            $("#paging").html('');
+            load(1, size);
+        }
+
+
+        function render_time(timestamp) {
+            var d = new Date(timestamp * 1000);
+            var date = (d.getFullYear()) + "-" +
+                (d.getMonth() + 1) + "-" +
+                (d.getDate()) + " " +
+                (d.getHours()) + ":" +
+                (d.getMinutes()) + ":" +
+                (d.getSeconds());
+            return date;
+        }
+
+        var global_status = 'submitted';
+
+        function load(page, size) {
+            var keyword = $("#keyword").val();
+            $("#tbody").html("<tr><td colspan=4><p style='text-align:center;padding:50px;font-weight:bold' >Loading...</p></td></tr>");
+            $.ajax({
+                type: "POST",
+                url: "/manage/question/manage_search",
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify({ keyword: keyword, size: size, page: page, status: global_status }),
+                dataType: "json",
+                success: function (ret) {
+                    var list = ret.data.list
+                    var html = '';
+                    for (var i = 0; i < list.length; i++) {
+                        var item = list[i];
+                        var tag_html = ' <font style="font-size:8px;" color="#c0c0c0"> tags  </font>';
+                        for (var j = 0; j < item.tags.length; j++) {
+                            tag_html += '<span class="layui-badge layui-bg-gray">' + item.tags[j] + '</span> ';
+                        }
+                        if (item.tags.length == 0) {
+                            tag_html = '';
+                        }
+                        html += '<tr>';
+                        html += '<td>' + list[i].first_name + ' ' + list[i].last_name + ' </td>';
+                        html += '<td>' + list[i].question.replace(new RegExp(keyword, 'i'), '<font color=red>' + keyword + '</font>') + ' ' + tag_html + '</td>';
+                        html += '<td>' + render_time(list[i].created_at) + '</td>';
+                        html += '<td><button class="layui-btn layui-btn-primary layui-btn-sm layui-btn-normal" onclick="edit(' + list[i].id + ')">Edit</button>  <button class="layui-btn layui-btn-primary layui-btn-sm layui-btn-danger" onclick="del(' + list[i].id + ')">Delete</button></td>';
+                        html += '</tr>';
+                    }
+                    $("#tbody").html(html);
+                    if ($("#paging").html() == "") {
+                        paging(ret.data.total, size);
+                    }
+                    $(".layui-laypage-prev").html("Prev");
+                    $(".layui-laypage-next").html("Next");
+                }
+            });
+        }
+
+        var addLayer = null;
+        function add() {
+            addLayer = layer.open({
+                type: 2,
+                title: 'Add question',
+                shadeClose: true,
+                shade: 0.8,
+                area: ['800px', '700px'],
+                content: '/manage/question/update_question' 
+            });
+        }
+
+        function edit(id) {
+            addLayer = layer.open({
+                type: 2,
+                title: 'Edit question',
+                shadeClose: true,
+                shade: 0.8,
+                area: ['800px', '700px'],
+                content: '/manage/question/update_question?id=' + id
+            });
+
+        }
+
+        function remove(id) {
+            $.ajax({
+                type: "POST",
+                url: "/manage/question/del",
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify({ id: id }),
+                dataType: "json",
+                success: function (ret) {
+                    search();
+                }
+
+            });
+        }
+
+        function del(id) {
+            layer.confirm('Are you sure?', {
+                btn: ['OK', 'Cancel'] 
+            }, function () {
+                layer.msg('Delete successful');
+                remove(id);
+            }, function () {
+
+            });
+        }
+
+        function paging(total, size) {
+            layui.use(['laypage', 'layer'], function () {
+                var laypage = layui.laypage
+                    , layer = layui.layer;
+
+                laypage.render({
+                    elem: 'paging'
+                    , count: total,
+                    limit: size,
+                    jump: function (obj, first) {
+                        $(".layui-laypage-prev").html("Prev");
+                        $(".layui-laypage-next").html("Next");
+                        if (!first)
+                            load(obj.curr, size);
+                    }
+                });
+                $(".layui-laypage-prev").html("Prev");
+                $(".layui-laypage-next").html("Next");
+            });
+        }
+
+        search();
+    </script>
+
+</body>
+
+</html>
